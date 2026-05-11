@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MMJ Mail - Internal Social</title>
+    
+    <!-- 1. Import Supabase Library -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- 2. Import Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        /* --- CSS STYLES: Gmail Clone --- */
+        :root {
+            --bg-color: #f6f8fc;
+            --sidebar-width: 256px;
+            --hover-bg: #f1f3f4;
+            --border-color: #e0e0e0;
+            --text-dark: #202124;
+            --text-gray: #5f6368;
+        }
+
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            color: var(--text-dark);
+            overflow: hidden;
+        }
+
+        /* Utility Classes */
+        .hidden { display: none !important; }
+        .flex { display: flex; }
+        .flex-col { flex-direction: column; }
+        .items-center { align-items: center; }
+        .justify-between { justify-content: space-between; }
+        .justify-center { justify-content: center; }
+        .grow { flex-grow: 1; }
+        .cursor-pointer { cursor: pointer; }
+        .font-bold { font-weight: bold; }
+
+        /* --- Auth Screen --- */
+        #auth-view {
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: white;
+        }
+        .auth-card {
+            border: 1px solid #dadce0;
+            border-radius: 8px;
+            padding: 48px 40px 36px;
+            width: 450px;
+            text-align: center;
+        }
+        .auth-input {
+            width: 100%;
+            padding: 13px 15px;
+            margin: 8px 0;
+            border: 1px solid #dadce0;
+            border-radius: 4px;
+            font-size: 16px;
+            outline: none;
+        }
+        .auth-input:focus { border: 1px solid #1a73e8; }
+        .auth-btn {
+            background-color: #1a73e8;
+            color: white;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 20px;
+            width: 100%;
+        }
+
+        /* --- Main App Layout --- */
+        #app-view {
+            display: flex;
+            height: 100vh;
+        }
+
+        /* Sidebar */
+        aside {
+            width: var(--sidebar-width);
+            background: white;
+            padding-top: 16px;
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+        }
+        .header-logo {
+            padding: 8px 16px 16px 26px;
+            font-size: 22px;
+            color: var(--text-gray);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .compose-btn {
+            background: #c2e7ff;
+            color: #001d35;
+            border: none;
+            border-radius: 16px;
+            padding: 16px 24px;
+            margin: 0 16px 16px 16px;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 14px;
+            width: fit-content;
+            transition: box-shadow 0.2s;
+        }
+        .compose-btn:hover { box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+
+        .nav-item {
+            padding: 0 26px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            border-radius: 0 16px 16px 0;
+            margin-bottom: 2px;
+            cursor: pointer;
+            font-size: 14px;
+            color: var(--text-dark);
+        }
+        .nav-item.active {
+            background-color: #d3e3fd; /* Light Blue */
+            font-weight: 700;
+        }
+        .nav-item:hover:not(.active) { background-color: var(--hover-bg); }
+        .nav-icon { margin-right: 18px; width: 20px; }
+
+        /* Content Area */
+        main {
+            flex-grow: 1;
+            background: white;
+            border-radius: 16px 16px 0 0;
+            margin-right: 16px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 0 5px rgba(0,0,0,0.05);
+            overflow: hidden;
+        }
+
+        /* Top Bar */
+        header {
+            height: 64px;
+            border-bottom: 1px solid var(--border-color);
+            padding: 8px 20px;
+            display: flex;
+            align-items: center;
+        }
+        .search-bar {
+            background: #eaf1fb;
+            border-radius: 8px;
+            padding: 12px 16px;
+            width: 50%;
+            display: flex;
+            align-items: center;
+            color: var(--text-gray);
+        }
+        .search-bar input {
+            border: none;
+            background: transparent;
+            margin-left: 10px;
+            width: 100%;
+            outline: none;
+        }
+
+        /* Email List View */
+        .email-list {
+            flex: 1;
+            overflow-y: auto;
+        }
+        .email-item {
+            display: flex;
+            padding: 10px 16px;
+            border-bottom: 1px solid var(--border-color);
+            cursor: pointer;
+            align-items: center;
+        }
+        .email-item:hover { box-shadow: inset 1px 0 0 #dadce0; background: #f2f2f2; }
+        .email-item.unread { background-color: #fff; font-weight: 700; }
+        .email-item.read { background-color: rgba(242,245,245, 0.8); font-weight: 400; }
+        
+        .sender-col { width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .subject-col { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 16px; }
+        .date-col { width: 80px; text-align: right; font-size: 12px; color: var(--text-dark); }
+
+        /* Reading Pane */
+        .reading-pane {
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+            display: none;
+        }
+        .reading-pane.active { display: block; }
+        .email-subject-large { font-size: 22px; margin-bottom: 20px; }
+        .email-meta { display: flex; align-items: center; margin-bottom: 30px; }
+        .email-avatar { width: 40px; height: 40px; background: purple; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 15px; font-weight: bold; }
+        .email-body { line-height: 1.5; white-space: pre-wrap; }
+
+        /* --- Compose Modal --- */
+        .modal-overlay {
+            position: fixed; bottom: 0; right: 80px;
+            z-index: 1000;
+        }
+        .compose-window {
+            width: 500px;
+            height: 500px;
+            background: white;
+            border-radius: 8px 8px 0 0;
+            box-shadow: 0 8px 10px 1px rgba(0,0,0,0.14), 0 3px 14px 2px rgba(0,0,0,0.12), 0 5px 5px -3px rgba(0,0,0,0.2);
+            display: flex;
+            flex-direction: column;
+        }
+        .compose-header {
+            background: #f2f6fc;
+            padding: 10px 15px;
+            border-radius: 8px 8px 0 0;
+            display: flex;
+            justify-content: space-between;
+            color: var(--text-dark);
+            font-weight: 500;
+            cursor: pointer;
+        }
+        .compose-body input, .compose-body textarea {
+            width: 100%;
+            border: none;
+            padding: 10px 15px;
+            font-family: inherit;
+            border-bottom: 1px solid var(--border-color);
+            outline: none;
+        }
+        .compose-body textarea { resize: none; height: 300px; border-bottom: none; }
+        
+        .compose-footer {
+            padding: 12px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .send-btn {
+            background: #0b57d0;
+            color: white;
+            border: none;
+            padding: 8px 24px;
+            border-radius: 18px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .send-btn:disabled { background: #ccc; cursor: not-allowed; }
+        .error-msg { color: #b3261e; font-size: 12px; margin-right: 10px; }
+
+    </style>
+</head>
+<body>
+
+    <!-- === AUTH VIEW === -->
+    <div id="auth-view">
+        <div class="auth-card">
+            <div class="flex justify-center items-center gap-2 mb-4" style="color:#ea4335;">
+                <i data-lucide="mail" size="32"></i>
+                <span style="font-size: 24px; font-weight:bold;">MMJ Mail</span>
+            </div>
+            <h2 id="auth-title" style="margin-bottom:5px;">Sign in</h2>
+            <p style="color:#5f6368; font-size: 14px; margin-bottom: 20px;">to continue to MMJ Mail</p>
+            
+            <form id="auth-form">
+                <!-- Signup Fields (Hidden by default) -->
+                <div id="signup-fields" class="hidden">
+                    <input type="text" id="signup-username" class="auth-input" placeholder="Username (e.g. admin)" />
+                    <p style="text-align:left; font-size:12px; color:#5f6368; margin-top:-5px; margin-bottom:10px;">
+                        This will become admin@mmjmail.com
+                    </p>
+                </div>
+
+                <!-- Common Fields -->
+                <input type="email" id="auth-email" class="auth-input" placeholder="Real Email (for recovery)" />
+                <input type="password" id="auth-password" class="auth-input" placeholder="Password" />
+                
+                <div id="auth-error" style="color: #d93025; font-size: 14px; margin-top: 10px; display:none;"></div>
+                
+                <button type="submit" class="auth-btn" id="auth-btn-text">Next</button>
+            </form>
+
+            <div class="mt-4" style="font-size: 14px;">
+                <span id="toggle-auth-text" style="color:#1a73e8; cursor:pointer;" onclick="toggleAuthMode()">Create account</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- === APP VIEW === -->
+    <div id="app-view" class="hidden">
+        
+        <!-- Sidebar -->
+        <aside>
+            <div class="header-logo">
+                <i data-lucide="menu"></i>
+                <span style="color:#5f6368; font-weight: 500;">MMJ Mail</span>
+            </div>
+            
+            <button class="compose-btn" onclick="openCompose()">
+                <i data-lucide="pencil" size="20"></i> Compose
+            </button>
+
+            <nav>
+                <div class="nav-item active" id="nav-inbox" onclick="switchView('inbox')">
+                    <i data-lucide="inbox" class="nav-icon"></i> Inbox
+                </div>
+                <div class="nav-item" id="nav-sent" onclick="switchView('sent')">
+                    <i data-lucide="send" class="nav-icon"></i> Sent
+                </div>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main>
+            <header>
+                <div class="search-bar">
+                    <i data-lucide="search" size="18"></i>
+                    <input type="text" placeholder="Search mail" id="search-input" onkeyup="handleSearch()">
+                </div>
+                <div style="margin-left:auto;">
+                    <button onclick="signOut()" style="background:none; border:none; cursor:pointer; color:#5f6368;">
+                        <i data-lucide="log-out"></i>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Email List -->
+            <div id="email-list-container" class="email-list">
+                <!-- Items injected by JS -->
+            </div>
+
+            <!-- Reading Pane (Hidden initially) -->
+            <div id="reading-pane" class="reading-pane">
+                <button onclick="backToList()" style="background:none; border:none; cursor:pointer; margin-bottom:10px; color:#1a73e8;">
+                    &larr; Back
+                </button>
+                <div id="read-content"></div>
+            </div>
+        </main>
+    </div>
+
+    <!-- === COMPOSE MODAL === -->
+    <div id="compose-modal" class="modal-overlay hidden">
+        <div class="compose-window">
+            <div class="compose-header" onclick="closeCompose()">
+                <span>New Message</span>
+                <div class="flex gap-2">
+                    <i data-lucide="minus" size="16"></i>
+                    <i data-lucide="x" size="16"></i>
+                </div>
+            </div>
+            <div class="compose-body flex-col flex-grow">
+                <input type="text" id="compose-to" placeholder="To (username or user@mmjmail.com)" />
+                <input type="text" id="compose-subject" placeholder="Subject" />
+                <textarea id="compose-body" placeholder="Type your message..."></textarea>
+            </div>
+            <div class="compose-footer">
+                <span id="compose-error" class="error-msg"></span>
+                <button id="send-btn" class="send-btn" onclick="sendEmail()">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- === JAVASCRIPT === -->
+    <script>
+        // 1. CONFIGURATION
+        const SUPABASE_URL = "https://tjvcwwukbstddobmqbcf.supabase.co";
+        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRqdmN3d3VrYnN0ZGRvYm1xYmNmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg0OTU2MDQsImV4cCI6MjA5NDA3MTYwNH0.utm2LvKko-MbaVHSLiINRTPJ-_PJyyaYuKZ40zZUrXo";
+        
+        // Initialize Supabase
+        const { createClient } = supabase;
+        const supabaseClient = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // State
+        let currentUser = null;
+        let currentView = 'inbox';
+        let isSignupMode = false;
+        let virtualEmail = null;
+        let allEmails = []; // Store current view emails for search
+
+        // Initialize Icons
+        lucide.createIcons();
+
+        // --- AUTH LOGIC ---
+        
+        async function init() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (session) {
+                currentUser = session.user;
+                await loadUserProfile();
+                showApp();
+            }
+        }
+
+        function toggleAuthMode() {
+            isSignupMode = !isSignupMode;
+            document.getElementById('auth-title').innerText = isSignupMode ? 'Create Account' : 'Sign in';
+            document.getElementById('toggle-auth-text').innerText = isSignupMode ? "Already have an account? Sign in" : "Create account";
+            document.getElementById('auth-btn-text').innerText = isSignupMode ? "Sign Up" : "Next";
+            document.getElementById('signup-fields').classList.toggle('hidden', !isSignupMode);
+            document.getElementById('auth-error').style.display = 'none';
+        }
+
+        document.getElementById('auth-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('auth-email').value;
+            const password = document.getElementById('auth-password').value;
+            const errorDiv = document.getElementById('auth-error');
+
+            try {
+                if (isSignupMode) {
+                    const username = document.getElementById('signup-username').value.trim();
+                    if (!username) throw new Error("Username required");
+
+                    // 1. Create User
+                    const { data, error } = await supabaseClient.auth.signUp({
+                        email: email,
+                        password: password
+                    });
+                    if (error) throw error;
+
+                    // 2. Create Virtual Profile
+                    const vEmail = `${username}@mmjmail.com`.toLowerCase();
+                    const { error: profileError } = await supabaseClient
+                        .from('profiles')
+                        .insert({ id: data.user.id, virtual_email: vEmail });
+                    
+                    if (profileError) throw profileError;
+                    
+                    // Auto login
+                    currentUser = data.user;
+                    virtualEmail = vEmail;
+                    showApp();
+
+                } else {
+                    // Login
+                    const { data, error } = await supabaseClient.auth.signInWithPassword({
+                        email: email,
+                        password: password
+                    });
+                    if (error) throw error;
+                    
+                    currentUser = data.user;
+                    await loadUserProfile();
+                    showApp();
+                }
+            } catch (err) {
+                errorDiv.innerText = err.message;
+                errorDiv.style.display = 'block';
+            }
+        });
+
+        async function loadUserProfile() {
+            const { data, error } = await supabaseClient
+                .from('profiles')
+                .select('virtual_email')
+                .eq('id', currentUser.id)
+                .single();
+            
+            if (data) virtualEmail = data.virtual_email;
+        }
+
+        async function signOut() {
+            await supabaseClient.auth.signOut();
+            window.location.reload();
+        }
+
+        function showApp() {
+            document.getElementById('auth-view').classList.add('hidden');
+            document.getElementById('app-view').classList.remove('hidden');
+            fetchEmails();
+            setupRealtime();
+        }
+
+        // --- APP LOGIC ---
+
+        async function switchView(view) {
+            currentView = view;
+            document.getElementById('nav-inbox').classList.toggle('active', view === 'inbox');
+            document.getElementById('nav-sent').classList.toggle('active', view === 'sent');
+            
+            backToList(); // Ensure list is shown
+            await fetchEmails();
+        }
+
+        async function fetchEmails() {
+            let query = supabaseClient
+                .from('messages')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (currentView === 'inbox') {
+                query = query.eq('receiver_email', virtualEmail);
+            } else {
+                query = query.eq('sender_id', currentUser.id);
+            }
+
+            const { data, error } = await query;
+            if (!error) {
+                allEmails = data;
+                renderEmailList(allEmails);
+            }
+        }
+
+        function setupRealtime() {
+            supabaseClient
+                .channel('public:messages')
+                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
+                    if (currentView === 'inbox' && payload.new.receiver_email === virtualEmail) {
+                        allEmails.unshift(payload.new);
+                        renderEmailList(allEmails);
+                    } else if (currentView === 'sent' && payload.new.sender_id === currentUser.id) {
+                         allEmails.unshift(payload.new);
+                         renderEmailList(allEmails);
+                    }
+                })
+                .subscribe();
+        }
+
+        function renderEmailList(emails) {
+            const container = document.getElementById('email-list-container');
+            container.innerHTML = '';
+            
+            emails.forEach(email => {
+                const div = document.createElement('div');
+                div.className = `email-item ${email.read ? 'read' : 'unread'}`;
+                
+                // Determine display name
+                const displayName = currentView === 'inbox' ? email.sender_email : email.receiver_email;
+                const date = new Date(email.created_at).toLocaleDateString();
+
+                div.innerHTML = `
+                    <div class="sender-col">${displayName}</div>
+                    <div class="subject-col">${email.subject || '(No Subject)'}</div>
+                    <div class="date-col">${date}</div>
+                `;
+                div.onclick = () => readEmail(email);
+                container.appendChild(div);
+            });
+        }
+
+        function handleSearch() {
+            const query = document.getElementById('search-input').value.toLowerCase();
+            const filtered = allEmails.filter(e => 
+                (e.subject && e.subject.toLowerCase().includes(query)) ||
+                (e.body && e.body.toLowerCase().includes(query))
+            );
+            renderEmailList(filtered);
+        }
+
+        function readEmail(email) {
+            // Mark as read (optimistic)
+            if(!email.read && currentView === 'inbox') {
+                supabaseClient.from('messages').update({ read: true }).eq('id', email.id);
+            }
+
+            document.getElementById('email-list-container').classList.add('hidden');
+            const pane = document.getElementById('reading-pane');
+            pane.classList.add('active');
+
+            const avatarLetter = (email.sender_email || 'U').charAt(0).toUpperCase();
+
+            document.getElementById('read-content').innerHTML = `
+                <h1 class="email-subject-large">${email.subject}</h1>
+                <div class="email-meta">
+                    <div class="email-avatar">${avatarLetter}</div>
+                    <div>
+                        <div class="font-bold">${email.sender_email}</div>
+                        <div style="font-size:12px; color:#5f6368;">to me < ${email.receiver_email} ></div>
+                    </div>
+                </div>
+                <div class="email-body">${email.body}</div>
+            `;
+        }
+
+        function backToList() {
+            document.getElementById('reading-pane').classList.remove('active');
+            document.getElementById('email-list-container').classList.remove('hidden');
+        }
+
+        // --- COMPOSE LOGIC ---
+
+        function openCompose() {
+            document.getElementById('compose-modal').classList.remove('hidden');
+        }
+        function closeCompose() {
+            document.getElementById('compose-modal').classList.add('hidden');
+            clearComposeError();
+        }
+
+        async function sendEmail() {
+            const toInput = document.getElementById('compose-to').value.trim();
+            const subject = document.getElementById('compose-subject').value.trim();
+            const body = document.getElementById('compose-body').value.trim();
+            const btn = document.getElementById('send-btn');
+
+            clearComposeError();
+            if (!toInput || !body) return;
+
+            btn.disabled = true;
+            btn.innerText = "Sending...";
+
+            try {
+                // 1. Validate Domain & Normalize
+                let recipientEmail = toInput.toLowerCase();
+                const internalDomain = '@mmjmail.com';
+
+                // Auto-append domain if missing
+                if (!recipientEmail.includes('@')) {
+                    recipientEmail = recipientEmail + internalDomain;
+                }
+
+                // STRICT CHECK: Must end with @mmjmail.com
+                if (!recipientEmail.endsWith(internalDomain)) {
+                    throw new Error("Security: You can only send emails to @mmjmail.com");
+                }
+
+                // 2. Verify Recipient Exists in DB
+                const { data: recipientData, error: findError } = await supabaseClient
+                    .from('profiles')
+                    .select('id')
+                    .eq('virtual_email', recipientEmail)
+                    .single();
+
+                if (findError || !recipientData) {
+                    throw new Error(`User ${recipientEmail} not found in system.`);
+                }
+
+                // 3. Insert Message
+                const { error: insertError } = await supabaseClient
+                    .from('messages')
+                    .insert({
+                        sender_id: currentUser.id,
+                        sender_email: virtualEmail,
+                        receiver_email: recipientEmail,
+                        subject: subject,
+                        body: body
+                    });
+
+                if (insertError) throw insertError;
+
+                // Success
+                closeCompose();
+                if (currentView === 'sent') fetchEmails();
+
+            } catch (err) {
+                document.getElementById('compose-error').innerText = err.message;
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Send";
+            }
+        }
+
+        function clearComposeError() {
+            document.getElementById('compose-error').innerText = '';
+        }
+
+        // Run on load
+        init();
+
+    </script>
+</body>
+</html>
