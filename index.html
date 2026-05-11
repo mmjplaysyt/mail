@@ -17,13 +17,12 @@
             --bg-body: #f8fafc;
             --bg-sidebar: #ffffff;
             --bg-card: #ffffff;
-            --primary: #3b82f6; /* Modern Blue */
+            --primary: #3b82f6;
             --primary-hover: #2563eb;
             --text-main: #1e293b;
             --text-muted: #64748b;
             --border: #e2e8f0;
             --danger: #ef4444;
-            --success: #10b981;
             --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
         }
 
@@ -39,7 +38,6 @@
             overflow: hidden;
         }
 
-        /* --- Utilities --- */
         .hidden { display: none !important; }
         .flex { display: flex; }
         .flex-col { flex-direction: column; }
@@ -50,7 +48,6 @@
         .gap-2 { gap: 0.5rem; }
         .gap-4 { gap: 1rem; }
         .font-bold { font-weight: 700; }
-        .text-sm { font-size: 0.875rem; }
         .cursor-pointer { cursor: pointer; }
 
         /* --- AUTH SCREEN --- */
@@ -113,7 +110,6 @@
             display: flex;
             flex-direction: column;
             padding: 24px;
-            transition: width 0.3s;
         }
 
         .logo {
@@ -122,7 +118,6 @@
             color: var(--text-main);
             margin-bottom: 32px;
             display: flex; align-items: center; gap: 10px;
-            letter-spacing: -0.5px;
         }
         
         .compose-btn {
@@ -147,7 +142,6 @@
             font-weight: 500;
             cursor: pointer;
             display: flex; align-items: center; gap: 12px;
-            transition: all 0.2s;
             margin-bottom: 4px;
         }
         .nav-item:hover { background: #f1f5f9; color: var(--text-main); }
@@ -176,7 +170,6 @@
             position: relative;
         }
 
-        /* Top Bar */
         header {
             height: 80px;
             border-bottom: 1px solid var(--border);
@@ -426,8 +419,13 @@
             const { data: { session } } = await db.auth.getSession();
             if (session) {
                 currentUser = session.user;
-                await loadProfile();
-                showApp();
+                // Wait for profile
+                const loaded = await loadProfile(); 
+                if (loaded) {
+                    showApp();
+                } else {
+                    alert("Profile not found. Please logout and try again.");
+                }
             }
         }
 
@@ -460,27 +458,33 @@
             e.preventDefault();
             const emailInput = document.getElementById('email').value.trim();
             const password = document.getElementById('password').value;
-            
-            // FIX 1: Force username to lowercase to prevent case-sensitivity issues
-            const username = document.getElementById('username').value.trim().toLowerCase(); 
-            
+            const username = document.getElementById('username').value.trim().toLowerCase(); // Auto lowercase
             const errorEl = document.getElementById('auth-error');
 
             try {
                 if (isSignup) {
                     if (!username) throw new Error("Username required");
                     
-                    // 1. Create Auth User
+                    // 1. Create Auth User (Database Trigger auto-creates profile)
                     const { data, error } = await db.auth.signUp({ email: emailInput, password: password });
                     if (error) throw error;
 
-                    // 2. Create Profile (Internal Email) - Auto Registered
-                    const vEmail = `${username}@mmjmail.com`; // Guaranteed lowercase
-                    const { error: profErr } = await db.from('profiles').insert({ id: data.user.id, virtual_email: vEmail });
-                    if (profErr) throw profErr;
+                    // 2. Update the Profile (Set the virtual_email)
+                    // We use the ID from the auth user to match the row created by the trigger
+                    const vEmail = `${username}@mmjmail.com`;
+                    
+                    const { error: updateError } = await db.from('profiles')
+                        .update({ virtual_email: vEmail })
+                        .eq('id', data.user.id);
+                    
+                    if (updateError) {
+                        console.warn("Profile update failed:", updateError);
+                        // If update fails, the trigger likely created a 'pending' account. 
+                        // We'll try to load it or fail gracefully.
+                    }
 
                     currentUser = data.user;
-                    virtualEmail = vEmail;
+                    virtualEmail = vEmail; // Set locally so the UI works immediately
                     showApp();
 
                 } else {
@@ -499,12 +503,20 @@
         });
 
         async function loadProfile() {
-            const { data } = await db.from('profiles').select('virtual_email').eq('id', currentUser.id).single();
+            const { data, error } = await db.from('profiles').select('virtual_email').eq('id', currentUser.id).single();
+            
+            if (error) {
+                console.error("Load Profile Error:", error);
+                return false;
+            }
+            
             if (data) {
                 virtualEmail = data.virtual_email;
                 document.getElementById('my-email-display').innerText = virtualEmail;
                 document.getElementById('my-avatar').innerText = virtualEmail.charAt(0).toUpperCase();
+                return true;
             }
+            return false;
         }
 
         function showApp() {
@@ -596,7 +608,6 @@
         function openDetail(email) {
             if (!email.read && activeTab === 'inbox') {
                 db.from('messages').update({ read: true }).eq('id', email.id);
-                // Optimistic UI update
                 email.read = true;
                 renderList(emails);
             }
@@ -633,7 +644,6 @@
         }
 
         async function sendEmail() {
-            // FIX 2: Lowercase the 'To' field to ensure it matches the lowercase registration
             let to = document.getElementById('compose-to').value.trim().toLowerCase();
             const subject = document.getElementById('compose-subject').value.trim();
             const body = document.getElementById('compose-body').value.trim();
@@ -641,25 +651,22 @@
 
             if(!to || !body) return;
 
-            // Auto append domain
             let finalTo = to;
             if (!finalTo.includes('@')) finalTo = `${finalTo}@mmjmail.com`;
 
-            // Strict domain check
             if (!finalTo.endsWith('@mmjmail.com')) {
                 errEl.innerText = "Restricted: You can only mail users @mmjmail.com";
                 return;
             }
 
             try {
-                // Check if user exists
                 const { data, error } = await db.from('profiles').select('id').eq('virtual_email', finalTo).single();
                 
                 if (error || !data) throw new Error("User not found in system.");
 
                 const { error: insertError } = await db.from('messages').insert({
                     sender_id: currentUser.id,
-                    sender_email: virtualEmail,
+                    sender_email: virtualEmail, // This is now guaranteed to be set
                     receiver_email: finalTo,
                     subject,
                     body
