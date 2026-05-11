@@ -3,265 +3,275 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MMJ Mail - Internal Social</title>
+    <title>MMJ Mail</title>
     
-    <!-- 1. Import Supabase Library -->
+    <!-- Supabase & Icons -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- 2. Import Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
 
     <style>
-        /* --- CSS STYLES: Gmail Clone --- */
+        /* --- MODERN "ATOMIC" UI CSS --- */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
         :root {
-            --bg-color: #f6f8fc;
-            --sidebar-width: 256px;
-            --hover-bg: #f1f3f4;
-            --border-color: #e0e0e0;
-            --text-dark: #202124;
-            --text-gray: #5f6368;
+            --bg-body: #f8fafc;
+            --bg-sidebar: #ffffff;
+            --bg-card: #ffffff;
+            --primary: #3b82f6; /* Modern Blue */
+            --primary-hover: #2563eb;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --danger: #ef4444;
+            --success: #10b981;
+            --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
         }
 
-        * { box-sizing: border-box; }
+        * { box-sizing: border-box; outline: none; }
+        
         body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-main);
             margin: 0;
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--bg-color);
             height: 100vh;
             display: flex;
-            flex-direction: column;
-            color: var(--text-dark);
             overflow: hidden;
         }
 
-        /* Utility Classes */
+        /* --- Utilities --- */
         .hidden { display: none !important; }
         .flex { display: flex; }
         .flex-col { flex-direction: column; }
         .items-center { align-items: center; }
-        .justify-between { justify-content: space-between; }
         .justify-center { justify-content: center; }
+        .justify-between { justify-content: space-between; }
         .grow { flex-grow: 1; }
+        .gap-2 { gap: 0.5rem; }
+        .gap-4 { gap: 1rem; }
+        .font-bold { font-weight: 700; }
+        .text-sm { font-size: 0.875rem; }
         .cursor-pointer { cursor: pointer; }
-        .font-bold { font-weight: bold; }
 
-        /* --- Auth Screen --- */
+        /* --- AUTH SCREEN --- */
         #auth-view {
-            height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background: white;
+            position: fixed; top:0; left:0; width:100%; height:100%;
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+            z-index: 50;
+            display: flex; align-items: center; justify-content: center;
         }
+
         .auth-card {
-            border: 1px solid #dadce0;
-            border-radius: 8px;
-            padding: 48px 40px 36px;
-            width: 450px;
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            border: 1px solid white;
+            box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1);
+            border-radius: 24px;
+            padding: 40px;
+            width: 400px;
             text-align: center;
         }
-        .auth-input {
+
+        .input-group { margin-bottom: 20px; text-align: left; }
+        .input-group label { display: block; font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+        
+        .modern-input {
             width: 100%;
-            padding: 13px 15px;
-            margin: 8px 0;
-            border: 1px solid #dadce0;
-            border-radius: 4px;
+            padding: 14px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
             font-size: 16px;
-            outline: none;
+            transition: all 0.2s;
+            background: #f8fafc;
         }
-        .auth-input:focus { border: 1px solid #1a73e8; }
-        .auth-btn {
-            background-color: #1a73e8;
+        .modern-input:focus { border-color: var(--primary); background: white; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); }
+
+        .btn-primary {
+            width: 100%;
+            background: var(--primary);
             color: white;
             border: none;
-            padding: 10px 24px;
-            border-radius: 4px;
-            font-weight: bold;
+            padding: 14px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 16px;
             cursor: pointer;
-            margin-top: 20px;
-            width: 100%;
+            transition: background 0.2s;
+            display: flex; justify-content: center; align-items: center; gap: 8px;
         }
+        .btn-primary:hover { background: var(--primary-hover); }
+        .btn-text { background: none; border: none; color: var(--primary); font-weight: 600; cursor: pointer; font-size: 14px; margin-top: 16px; }
 
-        /* --- Main App Layout --- */
-        #app-view {
-            display: flex;
-            height: 100vh;
-        }
+        /* --- APP LAYOUT --- */
+        #app-view { width: 100%; height: 100%; display: flex; }
 
         /* Sidebar */
         aside {
-            width: var(--sidebar-width);
-            background: white;
-            padding-top: 16px;
+            width: 280px;
+            background: var(--bg-sidebar);
+            border-right: 1px solid var(--border);
             display: flex;
             flex-direction: column;
-            flex-shrink: 0;
+            padding: 24px;
+            transition: width 0.3s;
         }
-        .header-logo {
-            padding: 8px 16px 16px 26px;
-            font-size: 22px;
-            color: var(--text-gray);
-            display: flex;
-            align-items: center;
-            gap: 8px;
+
+        .logo {
+            font-size: 20px;
+            font-weight: 800;
+            color: var(--text-main);
+            margin-bottom: 32px;
+            display: flex; align-items: center; gap: 10px;
+            letter-spacing: -0.5px;
         }
+        
         .compose-btn {
-            background: #c2e7ff;
-            color: #001d35;
+            background: var(--text-main);
+            color: white;
             border: none;
+            padding: 16px;
             border-radius: 16px;
-            padding: 16px 24px;
-            margin: 0 16px 16px 16px;
-            font-weight: 500;
+            font-weight: 600;
+            font-size: 15px;
             cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            font-size: 14px;
-            width: fit-content;
-            transition: box-shadow 0.2s;
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            transition: transform 0.1s;
         }
-        .compose-btn:hover { box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+        .compose-btn:active { transform: scale(0.98); }
 
         .nav-item {
-            padding: 0 26px;
-            height: 32px;
-            display: flex;
-            align-items: center;
-            border-radius: 0 16px 16px 0;
-            margin-bottom: 2px;
+            padding: 12px 16px;
+            border-radius: 12px;
+            color: var(--text-muted);
+            font-weight: 500;
             cursor: pointer;
-            font-size: 14px;
-            color: var(--text-dark);
+            display: flex; align-items: center; gap: 12px;
+            transition: all 0.2s;
+            margin-bottom: 4px;
         }
-        .nav-item.active {
-            background-color: #d3e3fd; /* Light Blue */
-            font-weight: 700;
-        }
-        .nav-item:hover:not(.active) { background-color: var(--hover-bg); }
-        .nav-icon { margin-right: 18px; width: 20px; }
+        .nav-item:hover { background: #f1f5f9; color: var(--text-main); }
+        .nav-item.active { background: #eff6ff; color: var(--primary); font-weight: 600; }
 
-        /* Content Area */
+        .user-profile {
+            margin-top: auto;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+            display: flex; align-items: center; gap: 12px;
+        }
+        .avatar {
+            width: 40px; height: 40px;
+            background: linear-gradient(135deg, #6366f1, #a855f7);
+            border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            color: white; font-weight: 700;
+        }
+
+        /* Main Content */
         main {
-            flex-grow: 1;
-            background: white;
-            border-radius: 16px 16px 0 0;
-            margin-right: 16px;
+            flex: 1;
             display: flex;
             flex-direction: column;
-            box-shadow: 0 0 5px rgba(0,0,0,0.05);
-            overflow: hidden;
+            background: #fff;
+            position: relative;
         }
 
         /* Top Bar */
         header {
-            height: 64px;
-            border-bottom: 1px solid var(--border-color);
-            padding: 8px 20px;
-            display: flex;
-            align-items: center;
+            height: 80px;
+            border-bottom: 1px solid var(--border);
+            padding: 0 32px;
+            display: flex; align-items: center; justify-content: space-between;
         }
-        .search-bar {
-            background: #eaf1fb;
-            border-radius: 8px;
-            padding: 12px 16px;
-            width: 50%;
-            display: flex;
-            align-items: center;
-            color: var(--text-gray);
+        .search-container {
+            position: relative;
+            width: 400px;
         }
-        .search-bar input {
-            border: none;
-            background: transparent;
-            margin-left: 10px;
+        .search-container input {
             width: 100%;
-            outline: none;
+            padding: 12px 12px 12px 44px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            background: #f8fafc;
+            font-size: 14px;
         }
+        .search-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-muted); }
 
-        /* Email List View */
+        /* Email List Area */
         .email-list {
             flex: 1;
             overflow-y: auto;
+            padding: 20px 32px;
         }
-        .email-item {
-            display: flex;
-            padding: 10px 16px;
-            border-bottom: 1px solid var(--border-color);
-            cursor: pointer;
-            align-items: center;
-        }
-        .email-item:hover { box-shadow: inset 1px 0 0 #dadce0; background: #f2f2f2; }
-        .email-item.unread { background-color: #fff; font-weight: 700; }
-        .email-item.read { background-color: rgba(242,245,245, 0.8); font-weight: 400; }
         
-        .sender-col { width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .subject-col { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 16px; }
-        .date-col { width: 80px; text-align: right; font-size: 12px; color: var(--text-dark); }
-
-        /* Reading Pane */
-        .reading-pane {
-            flex: 1;
-            padding: 30px;
-            overflow-y: auto;
-            display: none;
+        .email-card {
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
         }
-        .reading-pane.active { display: block; }
-        .email-subject-large { font-size: 22px; margin-bottom: 20px; }
-        .email-meta { display: flex; align-items: center; margin-bottom: 30px; }
-        .email-avatar { width: 40px; height: 40px; background: purple; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 15px; font-weight: bold; }
-        .email-body { line-height: 1.5; white-space: pre-wrap; }
+        .email-card:hover { transform: translateY(-2px); box-shadow: var(--shadow); border-color: var(--primary); }
+        .email-card.unread { border-left: 4px solid var(--primary); }
+        .email-card.read { border-left: 4px solid transparent; opacity: 0.8; }
 
-        /* --- Compose Modal --- */
-        .modal-overlay {
-            position: fixed; bottom: 0; right: 80px;
-            z-index: 1000;
-        }
-        .compose-window {
-            width: 500px;
-            height: 500px;
+        .card-header { display: flex; justify-content: space-between; margin-bottom: 8px; }
+        .sender { font-weight: 600; color: var(--text-main); }
+        .time { font-size: 12px; color: var(--text-muted); }
+        .subject { font-weight: 600; font-size: 16px; margin-bottom: 6px; color: var(--text-main); }
+        .preview { font-size: 14px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        /* Detail View */
+        #detail-view {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: white;
-            border-radius: 8px 8px 0 0;
-            box-shadow: 0 8px 10px 1px rgba(0,0,0,0.14), 0 3px 14px 2px rgba(0,0,0,0.12), 0 5px 5px -3px rgba(0,0,0,0.2);
-            display: flex;
-            flex-direction: column;
+            z-index: 20;
+            transform: translateX(100%);
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            display: flex; flex-direction: column;
         }
-        .compose-header {
-            background: #f2f6fc;
-            padding: 10px 15px;
-            border-radius: 8px 8px 0 0;
-            display: flex;
-            justify-content: space-between;
-            color: var(--text-dark);
-            font-weight: 500;
-            cursor: pointer;
-        }
-        .compose-body input, .compose-body textarea {
-            width: 100%;
-            border: none;
-            padding: 10px 15px;
-            font-family: inherit;
-            border-bottom: 1px solid var(--border-color);
-            outline: none;
-        }
-        .compose-body textarea { resize: none; height: 300px; border-bottom: none; }
+        #detail-view.open { transform: translateX(0); }
         
-        .compose-footer {
-            padding: 12px 16px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        .detail-nav {
+            padding: 24px 32px;
+            border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; gap: 16px;
         }
-        .send-btn {
-            background: #0b57d0;
-            color: white;
-            border: none;
-            padding: 8px 24px;
-            border-radius: 18px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-        .send-btn:disabled { background: #ccc; cursor: not-allowed; }
-        .error-msg { color: #b3261e; font-size: 12px; margin-right: 10px; }
+        .back-btn { background: none; border: none; cursor: pointer; color: var(--text-muted); padding: 8px; border-radius: 8px; }
+        .back-btn:hover { background: #f1f5f9; color: var(--text-main); }
+        
+        .detail-content { padding: 40px; overflow-y: auto; flex: 1; }
+        .detail-subject { font-size: 28px; font-weight: 700; margin-bottom: 24px; line-height: 1.2; }
+        .detail-meta { display: flex; align-items: center; gap: 16px; margin-bottom: 32px; }
+        .detail-avatar { width: 48px; height: 48px; border-radius: 14px; background: #e2e8f0; color: var(--text-muted); font-weight: 700; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+        .detail-body { font-size: 16px; line-height: 1.7; color: var(--text-main); white-space: pre-wrap; }
 
+        /* Modal */
+        .modal-overlay {
+            position: fixed; top:0; left:0; width:100%; height:100%;
+            background: rgba(0,0,0,0.4);
+            backdrop-filter: blur(4px);
+            z-index: 100;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .modal-window {
+            background: white;
+            width: 600px;
+            border-radius: 24px;
+            box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+            display: flex; flex-direction: column;
+            overflow: hidden;
+            animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        @keyframes slideUp { from { transform: translateY(50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        
+        .modal-header { padding: 20px 32px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+        .modal-body { padding: 32px; }
+        .modal-footer { padding: 20px 32px; background: #f8fafc; display: flex; justify-content: flex-end; gap: 12px; }
+        
     </style>
 </head>
 <body>
@@ -269,34 +279,40 @@
     <!-- === AUTH VIEW === -->
     <div id="auth-view">
         <div class="auth-card">
-            <div class="flex justify-center items-center gap-2 mb-4" style="color:#ea4335;">
-                <i data-lucide="mail" size="32"></i>
-                <span style="font-size: 24px; font-weight:bold;">MMJ Mail</span>
+            <div style="color: var(--primary); margin-bottom: 20px;">
+                <i data-lucide="mail" size="48"></i>
             </div>
-            <h2 id="auth-title" style="margin-bottom:5px;">Sign in</h2>
-            <p style="color:#5f6368; font-size: 14px; margin-bottom: 20px;">to continue to MMJ Mail</p>
+            <h1 id="auth-title" style="margin: 0 0 8px 0;">Welcome Back</h1>
+            <p id="auth-desc" style="color: var(--text-muted); margin-bottom: 32px;">Enter your credentials to access your account</p>
             
             <form id="auth-form">
-                <!-- Signup Fields (Hidden by default) -->
                 <div id="signup-fields" class="hidden">
-                    <input type="text" id="signup-username" class="auth-input" placeholder="Username (e.g. admin)" />
-                    <p style="text-align:left; font-size:12px; color:#5f6368; margin-top:-5px; margin-bottom:10px;">
-                        This will become admin@mmjmail.com
-                    </p>
+                    <div class="input-group">
+                        <label>Choose Username</label>
+                        <div class="flex gap-2">
+                            <input type="text" id="username" class="modern-input" placeholder="e.g. admin" style="flex:1">
+                            <span style="background:#e2e8f0; padding:0 15px; border-radius:12px; display:flex; align-items:center; font-weight:600; font-size:12px;">@mmjmail.com</span>
+                        </div>
+                    </div>
                 </div>
 
-                <!-- Common Fields -->
-                <input type="email" id="auth-email" class="auth-input" placeholder="Real Email (for recovery)" />
-                <input type="password" id="auth-password" class="auth-input" placeholder="Password" />
+                <div class="input-group">
+                    <label>Email (Internal Login)</label>
+                    <input type="email" id="email" class="modern-input" placeholder="user@mmjmail.com">
+                </div>
                 
-                <div id="auth-error" style="color: #d93025; font-size: 14px; margin-top: 10px; display:none;"></div>
+                <div class="input-group">
+                    <label>Password</label>
+                    <input type="password" id="password" class="modern-input" placeholder="••••••••">
+                </div>
                 
-                <button type="submit" class="auth-btn" id="auth-btn-text">Next</button>
+                <div id="auth-error" style="color: var(--danger); font-size: 13px; margin-bottom: 16px; display:none;"></div>
+                
+                <button type="submit" class="btn-primary" id="auth-btn">
+                    <span id="auth-btn-text">Sign In</span>
+                </button>
             </form>
-
-            <div class="mt-4" style="font-size: 14px;">
-                <span id="toggle-auth-text" style="color:#1a73e8; cursor:pointer;" onclick="toggleAuthMode()">Create account</span>
-            </div>
+            <button class="btn-text" onclick="toggleMode()" id="toggle-btn">Create an account</button>
         </div>
     </div>
 
@@ -305,178 +321,187 @@
         
         <!-- Sidebar -->
         <aside>
-            <div class="header-logo">
-                <i data-lucide="menu"></i>
-                <span style="color:#5f6368; font-weight: 500;">MMJ Mail</span>
+            <div class="logo">
+                <i data-lucide="hexagon" fill="var(--primary)" color="var(--primary)"></i>
+                MMJ Mail
             </div>
             
             <button class="compose-btn" onclick="openCompose()">
-                <i data-lucide="pencil" size="20"></i> Compose
+                <i data-lucide="pen-tool" size="18"></i> Compose
             </button>
 
-            <nav>
-                <div class="nav-item active" id="nav-inbox" onclick="switchView('inbox')">
-                    <i data-lucide="inbox" class="nav-icon"></i> Inbox
+            <nav style="margin-top: 24px; flex:1;">
+                <div class="nav-item active" id="nav-inbox" onclick="switchTab('inbox')">
+                    <i data-lucide="inbox" size="20"></i> Inbox
                 </div>
-                <div class="nav-item" id="nav-sent" onclick="switchView('sent')">
-                    <i data-lucide="send" class="nav-icon"></i> Sent
+                <div class="nav-item" id="nav-sent" onclick="switchTab('sent')">
+                    <i data-lucide="send" size="20"></i> Sent
                 </div>
             </nav>
+
+            <div class="user-profile">
+                <div class="avatar" id="my-avatar">U</div>
+                <div style="flex:1;">
+                    <div style="font-size:14px; font-weight:600;" id="my-email-display">Loading...</div>
+                    <div style="font-size:12px; color:var(--text-muted);">Free Account</div>
+                </div>
+                <i data-lucide="log-out" size="18" class="cursor-pointer" onclick="signOut()" style="color:var(--text-muted)"></i>
+            </div>
         </aside>
 
-        <!-- Main Content -->
+        <!-- Main Area -->
         <main>
             <header>
-                <div class="search-bar">
-                    <i data-lucide="search" size="18"></i>
-                    <input type="text" placeholder="Search mail" id="search-input" onkeyup="handleSearch()">
-                </div>
-                <div style="margin-left:auto;">
-                    <button onclick="signOut()" style="background:none; border:none; cursor:pointer; color:#5f6368;">
-                        <i data-lucide="log-out"></i>
-                    </button>
+                <div class="search-container">
+                    <i data-lucide="search" class="search-icon" size="18"></i>
+                    <input type="text" placeholder="Search messages..." onkeyup="handleSearch(this.value)">
                 </div>
             </header>
 
-            <!-- Email List -->
-            <div id="email-list-container" class="email-list">
-                <!-- Items injected by JS -->
+            <!-- List -->
+            <div id="email-list" class="email-list">
+                <!-- Emails go here -->
             </div>
 
-            <!-- Reading Pane (Hidden initially) -->
-            <div id="reading-pane" class="reading-pane">
-                <button onclick="backToList()" style="background:none; border:none; cursor:pointer; margin-bottom:10px; color:#1a73e8;">
-                    &larr; Back
-                </button>
-                <div id="read-content"></div>
+            <!-- Detail Slide-over -->
+            <div id="detail-view">
+                <div class="detail-nav">
+                    <button class="back-btn" onclick="closeDetail()"><i data-lucide="arrow-left"></i></button>
+                    <span style="font-weight:600;">Back</span>
+                </div>
+                <div id="detail-content" class="detail-content"></div>
             </div>
         </main>
     </div>
 
     <!-- === COMPOSE MODAL === -->
     <div id="compose-modal" class="modal-overlay hidden">
-        <div class="compose-window">
-            <div class="compose-header" onclick="closeCompose()">
-                <span>New Message</span>
-                <div class="flex gap-2">
-                    <i data-lucide="minus" size="16"></i>
-                    <i data-lucide="x" size="16"></i>
+        <div class="modal-window">
+            <div class="modal-header">
+                <h3 style="margin:0;">New Message</h3>
+                <i data-lucide="x" class="cursor-pointer" onclick="closeCompose()"></i>
+            </div>
+            <div class="modal-body">
+                <div class="input-group">
+                    <label>To</label>
+                    <input type="text" id="compose-to" class="modern-input" placeholder="Username or user@mmjmail.com">
                 </div>
+                <div class="input-group">
+                    <label>Subject</label>
+                    <input type="text" id="compose-subject" class="modern-input" placeholder="What is this about?">
+                </div>
+                <div class="input-group" style="margin-bottom:0;">
+                    <label>Message</label>
+                    <textarea id="compose-body" class="modern-input" rows="6" style="resize:none; padding-top:14px; font-family: inherit;" placeholder="Write your thoughts here..."></textarea>
+                </div>
+                <div id="compose-error" style="color:var(--danger); font-size:13px; margin-top:10px;"></div>
             </div>
-            <div class="compose-body flex-col flex-grow">
-                <input type="text" id="compose-to" placeholder="To (username or user@mmjmail.com)" />
-                <input type="text" id="compose-subject" placeholder="Subject" />
-                <textarea id="compose-body" placeholder="Type your message..."></textarea>
-            </div>
-            <div class="compose-footer">
-                <span id="compose-error" class="error-msg"></span>
-                <button id="send-btn" class="send-btn" onclick="sendEmail()">Send</button>
+            <div class="modal-footer">
+                <button class="btn-text" onclick="closeCompose()" style="margin-top:0; color:var(--text-muted);">Discard</button>
+                <button class="btn-primary" style="width: auto; padding: 10px 32px;" onclick="sendEmail()">
+                    <i data-lucide="send" size="16"></i> Send Message
+                </button>
             </div>
         </div>
     </div>
 
-    <!-- === JAVASCRIPT === -->
+    <!-- === JAVASCRIPT LOGIC === -->
     <script>
-        // 1. CONFIGURATION
+        // --- CONFIG ---
         const SUPABASE_URL = "https://tjvcwwukbstddobmqbcf.supabase.co";
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRqdmN3d3VrYnN0ZGRvYm1xYmNmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg0OTU2MDQsImV4cCI6MjA5NDA3MTYwNH0.utm2LvKko-MbaVHSLiINRTPJ-_PJyyaYuKZ40zZUrXo";
         
-        // Initialize Supabase
         const { createClient } = supabase;
-        const supabaseClient = createClient(SUPABASE_URL, SUPABASE_KEY);
-
-        // State
-        let currentUser = null;
-        let currentView = 'inbox';
-        let isSignupMode = false;
-        let virtualEmail = null;
-        let allEmails = []; // Store current view emails for search
-
-        // Initialize Icons
+        const db = createClient(SUPABASE_URL, SUPABASE_KEY);
         lucide.createIcons();
 
-        // --- AUTH LOGIC ---
-        
+        let currentUser = null;
+        let virtualEmail = null;
+        let isSignup = false;
+        let emails = [];
+        let activeTab = 'inbox';
+
+        // --- INIT ---
         async function init() {
-            const { data: { session } } = await supabaseClient.auth.getSession();
+            const { data: { session } } = await db.auth.getSession();
             if (session) {
                 currentUser = session.user;
-                await loadUserProfile();
+                await loadProfile();
                 showApp();
             }
         }
 
-        function toggleAuthMode() {
-            isSignupMode = !isSignupMode;
-            document.getElementById('auth-title').innerText = isSignupMode ? 'Create Account' : 'Sign in';
-            document.getElementById('toggle-auth-text').innerText = isSignupMode ? "Already have an account? Sign in" : "Create account";
-            document.getElementById('auth-btn-text').innerText = isSignupMode ? "Sign Up" : "Next";
-            document.getElementById('signup-fields').classList.toggle('hidden', !isSignupMode);
+        // --- AUTH ---
+        function toggleMode() {
+            isSignup = !isSignup;
+            const title = document.getElementById('auth-title');
+            const desc = document.getElementById('auth-desc');
+            const btnText = document.getElementById('auth-btn-text');
+            const toggleBtn = document.getElementById('toggle-btn');
+            const signupFields = document.getElementById('signup-fields');
+
+            if (isSignup) {
+                title.innerText = "Create Account";
+                desc.innerText = "Register your internal email address";
+                btnText.innerText = "Sign Up";
+                toggleBtn.innerText = "Already have an account?";
+                signupFields.classList.remove('hidden');
+            } else {
+                title.innerText = "Welcome Back";
+                desc.innerText = "Enter your credentials to access your account";
+                btnText.innerText = "Sign In";
+                toggleBtn.innerText = "Create an account";
+                signupFields.classList.add('hidden');
+            }
             document.getElementById('auth-error').style.display = 'none';
         }
 
         document.getElementById('auth-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const email = document.getElementById('auth-email').value;
-            const password = document.getElementById('auth-password').value;
-            const errorDiv = document.getElementById('auth-error');
+            const emailInput = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+            const username = document.getElementById('username').value.trim().toLowerCase();
+            const errorEl = document.getElementById('auth-error');
 
             try {
-                if (isSignupMode) {
-                    const username = document.getElementById('signup-username').value.trim();
+                if (isSignup) {
                     if (!username) throw new Error("Username required");
-
-                    // 1. Create User
-                    const { data, error } = await supabaseClient.auth.signUp({
-                        email: email,
-                        password: password
-                    });
+                    
+                    // 1. Create Auth User
+                    const { data, error } = await db.auth.signUp({ email: emailInput, password: password });
                     if (error) throw error;
 
-                    // 2. Create Virtual Profile
-                    const vEmail = `${username}@mmjmail.com`.toLowerCase();
-                    const { error: profileError } = await supabaseClient
-                        .from('profiles')
-                        .insert({ id: data.user.id, virtual_email: vEmail });
-                    
-                    if (profileError) throw profileError;
-                    
-                    // Auto login
+                    // 2. Create Profile (Internal Email)
+                    const vEmail = `${username}@mmjmail.com`;
+                    const { error: profErr } = await db.from('profiles').insert({ id: data.user.id, virtual_email: vEmail });
+                    if (profErr) throw profErr;
+
                     currentUser = data.user;
                     virtualEmail = vEmail;
                     showApp();
 
                 } else {
                     // Login
-                    const { data, error } = await supabaseClient.auth.signInWithPassword({
-                        email: email,
-                        password: password
-                    });
+                    const { data, error } = await db.auth.signInWithPassword({ email: emailInput, password: password });
                     if (error) throw error;
                     
                     currentUser = data.user;
-                    await loadUserProfile();
+                    await loadProfile();
                     showApp();
                 }
             } catch (err) {
-                errorDiv.innerText = err.message;
-                errorDiv.style.display = 'block';
+                errorEl.innerText = err.message;
+                errorEl.style.display = 'block';
             }
         });
 
-        async function loadUserProfile() {
-            const { data, error } = await supabaseClient
-                .from('profiles')
-                .select('virtual_email')
-                .eq('id', currentUser.id)
-                .single();
-            
-            if (data) virtualEmail = data.virtual_email;
-        }
-
-        async function signOut() {
-            await supabaseClient.auth.signOut();
-            window.location.reload();
+        async function loadProfile() {
+            const { data } = await db.from('profiles').select('virtual_email').eq('id', currentUser.id).single();
+            if (data) {
+                virtualEmail = data.virtual_email;
+                document.getElementById('my-email-display').innerText = virtualEmail;
+                document.getElementById('my-avatar').innerText = virtualEmail.charAt(0).toUpperCase();
+            }
         }
 
         function showApp() {
@@ -486,192 +511,165 @@
             setupRealtime();
         }
 
-        // --- APP LOGIC ---
+        async function signOut() {
+            await db.auth.signOut();
+            window.location.reload();
+        }
 
-        async function switchView(view) {
-            currentView = view;
-            document.getElementById('nav-inbox').classList.toggle('active', view === 'inbox');
-            document.getElementById('nav-sent').classList.toggle('active', view === 'sent');
-            
-            backToList(); // Ensure list is shown
-            await fetchEmails();
+        // --- APP LOGIC ---
+        function switchTab(tab) {
+            activeTab = tab;
+            document.getElementById('nav-inbox').classList.toggle('active', tab === 'inbox');
+            document.getElementById('nav-sent').classList.toggle('active', tab === 'sent');
+            closeDetail();
+            fetchEmails();
         }
 
         async function fetchEmails() {
-            let query = supabaseClient
-                .from('messages')
-                .select('*')
-                .order('created_at', { ascending: false });
+            let query = db.from('messages').select('*').order('created_at', { ascending: false });
+            if (activeTab === 'inbox') query = query.eq('receiver_email', virtualEmail);
+            else query = query.eq('sender_id', currentUser.id);
 
-            if (currentView === 'inbox') {
-                query = query.eq('receiver_email', virtualEmail);
-            } else {
-                query = query.eq('sender_id', currentUser.id);
-            }
-
-            const { data, error } = await query;
-            if (!error) {
-                allEmails = data;
-                renderEmailList(allEmails);
-            }
+            const { data } = await query;
+            emails = data || [];
+            renderList(emails);
         }
 
         function setupRealtime() {
-            supabaseClient
-                .channel('public:messages')
-                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
-                    if (currentView === 'inbox' && payload.new.receiver_email === virtualEmail) {
-                        allEmails.unshift(payload.new);
-                        renderEmailList(allEmails);
-                    } else if (currentView === 'sent' && payload.new.sender_id === currentUser.id) {
-                         allEmails.unshift(payload.new);
-                         renderEmailList(allEmails);
-                    }
-                })
-                .subscribe();
+            db.channel('public:messages')
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
+                const msg = payload.new;
+                const isForMe = msg.receiver_email === virtualEmail;
+                const isFromMe = msg.sender_id === currentUser.id;
+
+                if ((activeTab === 'inbox' && isForMe) || (activeTab === 'sent' && isFromMe)) {
+                    emails.unshift(msg);
+                    renderList(emails);
+                }
+            })
+            .subscribe();
         }
 
-        function renderEmailList(emails) {
-            const container = document.getElementById('email-list-container');
+        function renderList(list) {
+            const container = document.getElementById('email-list');
             container.innerHTML = '';
             
-            emails.forEach(email => {
-                const div = document.createElement('div');
-                div.className = `email-item ${email.read ? 'read' : 'unread'}`;
-                
-                // Determine display name
-                const displayName = currentView === 'inbox' ? email.sender_email : email.receiver_email;
-                const date = new Date(email.created_at).toLocaleDateString();
+            if (list.length === 0) {
+                container.innerHTML = `<div style="text-align:center; color:var(--text-muted); margin-top:50px;">
+                    <i data-lucide="inbox" size="48" style="opacity:0.2; margin-bottom:16px;"></i><br>No messages found.
+                </div>`;
+                lucide.createIcons();
+                return;
+            }
 
-                div.innerHTML = `
-                    <div class="sender-col">${displayName}</div>
-                    <div class="subject-col">${email.subject || '(No Subject)'}</div>
-                    <div class="date-col">${date}</div>
+            list.forEach(email => {
+                const el = document.createElement('div');
+                el.className = `email-card ${email.read ? 'read' : 'unread'}`;
+                const otherEmail = activeTab === 'inbox' ? email.sender_email : email.receiver_email;
+                
+                el.innerHTML = `
+                    <div class="card-header">
+                        <span class="sender">${otherEmail}</span>
+                        <span class="time">${new Date(email.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                    </div>
+                    <div class="subject">${email.subject || 'No Subject'}</div>
+                    <div class="preview">${email.body}</div>
                 `;
-                div.onclick = () => readEmail(email);
-                container.appendChild(div);
+                el.onclick = () => openDetail(email);
+                container.appendChild(el);
             });
         }
 
-        function handleSearch() {
-            const query = document.getElementById('search-input').value.toLowerCase();
-            const filtered = allEmails.filter(e => 
-                (e.subject && e.subject.toLowerCase().includes(query)) ||
-                (e.body && e.body.toLowerCase().includes(query))
+        function handleSearch(val) {
+            const lower = val.toLowerCase();
+            const filtered = emails.filter(e => 
+                e.subject.toLowerCase().includes(lower) || 
+                e.body.toLowerCase().includes(lower)
             );
-            renderEmailList(filtered);
+            renderList(filtered);
         }
 
-        function readEmail(email) {
-            // Mark as read (optimistic)
-            if(!email.read && currentView === 'inbox') {
-                supabaseClient.from('messages').update({ read: true }).eq('id', email.id);
+        // --- DETAIL VIEW ---
+        function openDetail(email) {
+            if (!email.read && activeTab === 'inbox') {
+                db.from('messages').update({ read: true }).eq('id', email.id);
+                // Optimistic UI update
+                email.read = true;
+                renderList(emails);
             }
 
-            document.getElementById('email-list-container').classList.add('hidden');
-            const pane = document.getElementById('reading-pane');
-            pane.classList.add('active');
+            const otherEmail = activeTab === 'inbox' ? email.sender_email : email.receiver_email;
+            const avatarChar = otherEmail.charAt(0).toUpperCase();
 
-            const avatarLetter = (email.sender_email || 'U').charAt(0).toUpperCase();
-
-            document.getElementById('read-content').innerHTML = `
-                <h1 class="email-subject-large">${email.subject}</h1>
-                <div class="email-meta">
-                    <div class="email-avatar">${avatarLetter}</div>
+            document.getElementById('detail-content').innerHTML = `
+                <h1 class="detail-subject">${email.subject || 'No Subject'}</h1>
+                <div class="detail-meta">
+                    <div class="detail-avatar">${avatarChar}</div>
                     <div>
-                        <div class="font-bold">${email.sender_email}</div>
-                        <div style="font-size:12px; color:#5f6368;">to me < ${email.receiver_email} ></div>
+                        <div style="font-weight:700;">${otherEmail}</div>
+                        <div style="color:var(--text-muted); font-size:13px;">${new Date(email.created_at).toLocaleString()}</div>
                     </div>
                 </div>
-                <div class="email-body">${email.body}</div>
+                <div class="detail-body">${email.body}</div>
             `;
+            document.getElementById('detail-view').classList.add('open');
         }
 
-        function backToList() {
-            document.getElementById('reading-pane').classList.remove('active');
-            document.getElementById('email-list-container').classList.remove('hidden');
+        function closeDetail() {
+            document.getElementById('detail-view').classList.remove('open');
         }
 
-        // --- COMPOSE LOGIC ---
-
-        function openCompose() {
-            document.getElementById('compose-modal').classList.remove('hidden');
-        }
-        function closeCompose() {
-            document.getElementById('compose-modal').classList.add('hidden');
-            clearComposeError();
+        // --- COMPOSE ---
+        function openCompose() { document.getElementById('compose-modal').classList.remove('hidden'); }
+        function closeCompose() { 
+            document.getElementById('compose-modal').classList.add('hidden'); 
+            document.getElementById('compose-error').innerText = '';
+            document.getElementById('compose-to').value = '';
+            document.getElementById('compose-subject').value = '';
+            document.getElementById('compose-body').value = '';
         }
 
         async function sendEmail() {
-            const toInput = document.getElementById('compose-to').value.trim();
+            const to = document.getElementById('compose-to').value.trim().toLowerCase();
             const subject = document.getElementById('compose-subject').value.trim();
             const body = document.getElementById('compose-body').value.trim();
-            const btn = document.getElementById('send-btn');
+            const errEl = document.getElementById('compose-error');
 
-            clearComposeError();
-            if (!toInput || !body) return;
+            if(!to || !body) return;
 
-            btn.disabled = true;
-            btn.innerText = "Sending...";
+            // Auto append domain
+            let finalTo = to;
+            if (!finalTo.includes('@')) finalTo = `${finalTo}@mmjmail.com`;
+
+            // Strict domain check
+            if (!finalTo.endsWith('@mmjmail.com')) {
+                errEl.innerText = "Restricted: You can only mail users @mmjmail.com";
+                return;
+            }
 
             try {
-                // 1. Validate Domain & Normalize
-                let recipientEmail = toInput.toLowerCase();
-                const internalDomain = '@mmjmail.com';
+                // Check if user exists
+                const { data } = await db.from('profiles').select('id').eq('virtual_email', finalTo).single();
+                if (!data) throw new Error("User not found in system");
 
-                // Auto-append domain if missing
-                if (!recipientEmail.includes('@')) {
-                    recipientEmail = recipientEmail + internalDomain;
-                }
+                const { error } = await db.from('messages').insert({
+                    sender_id: currentUser.id,
+                    sender_email: virtualEmail,
+                    receiver_email: finalTo,
+                    subject,
+                    body
+                });
 
-                // STRICT CHECK: Must end with @mmjmail.com
-                if (!recipientEmail.endsWith(internalDomain)) {
-                    throw new Error("Security: You can only send emails to @mmjmail.com");
-                }
-
-                // 2. Verify Recipient Exists in DB
-                const { data: recipientData, error: findError } = await supabaseClient
-                    .from('profiles')
-                    .select('id')
-                    .eq('virtual_email', recipientEmail)
-                    .single();
-
-                if (findError || !recipientData) {
-                    throw new Error(`User ${recipientEmail} not found in system.`);
-                }
-
-                // 3. Insert Message
-                const { error: insertError } = await supabaseClient
-                    .from('messages')
-                    .insert({
-                        sender_id: currentUser.id,
-                        sender_email: virtualEmail,
-                        receiver_email: recipientEmail,
-                        subject: subject,
-                        body: body
-                    });
-
-                if (insertError) throw insertError;
-
-                // Success
+                if (error) throw error;
                 closeCompose();
-                if (currentView === 'sent') fetchEmails();
+                if (activeTab === 'sent') fetchEmails();
 
             } catch (err) {
-                document.getElementById('compose-error').innerText = err.message;
-            } finally {
-                btn.disabled = false;
-                btn.innerText = "Send";
+                errEl.innerText = err.message;
             }
         }
 
-        function clearComposeError() {
-            document.getElementById('compose-error').innerText = '';
-        }
-
-        // Run on load
         init();
-
     </script>
 </body>
 </html>
