@@ -438,55 +438,30 @@
             const toggleBtn = document.getElementById('toggle-btn');
             const signupFields = document.getElementById('signup-fields');
 
-            if (isSignup) {
-                title.innerText = "Create Account";
-                desc.innerText = "Register your internal email address";
-                btnText.innerText = "Sign Up";
-                toggleBtn.innerText = "Already have an account?";
-                signupFields.classList.remove('hidden');
-            } else {
-                title.innerText = "Welcome Back";
-                desc.innerText = "Enter your credentials to access your account";
-                btnText.innerText = "Sign In";
-                toggleBtn.innerText = "Create an account";
-                signupFields.classList.add('hidden');
-            }
-            document.getElementById('auth-error').style.display = 'none';
-        }
+           if (isSignup) {
+    if (!username) throw new Error("Username required");
+    
+    // 1. Create Auth User
+    const { data, error } = await db.auth.signUp({ email: emailInput, password: password });
+    if (error) throw error;
 
-        document.getElementById('auth-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const emailInput = document.getElementById('email').value.trim();
-            const password = document.getElementById('password').value;
-            const username = document.getElementById('username').value.trim().toLowerCase(); // Auto lowercase
-            const errorEl = document.getElementById('auth-error');
+    // 2. WAIT 2 Seconds (Crucial for Supabase to sync)
+    await new Promise(r => setTimeout(r, 2000));
 
-            try {
-                if (isSignup) {
-                    if (!username) throw new Error("Username required");
-                    
-                    // 1. Create Auth User (Database Trigger auto-creates profile)
-                    const { data, error } = await db.auth.signUp({ email: emailInput, password: password });
-                    if (error) throw error;
+    // 3. UPDATE the existing profile (Do NOT Insert)
+    // The database trigger already created the row, we just fill in the email
+    const vEmail = `${username}@mmjmail.com`;
+    
+    const { error: profErr } = await db.from('profiles')
+        .update({ virtual_email: vEmail })
+        .eq('id', data.user.id); // Match the row that already exists
 
-                    // 2. Update the Profile (Set the virtual_email)
-                    // We use the ID from the auth user to match the row created by the trigger
-                    const vEmail = `${username}@mmjmail.com`;
-                    
-                    const { error: updateError } = await db.from('profiles')
-                        .update({ virtual_email: vEmail })
-                        .eq('id', data.user.id);
-                    
-                    if (updateError) {
-                        console.warn("Profile update failed:", updateError);
-                        // If update fails, the trigger likely created a 'pending' account. 
-                        // We'll try to load it or fail gracefully.
-                    }
+    if (profErr) throw new Error("Profile Update Failed: " + profErr.message);
 
-                    currentUser = data.user;
-                    virtualEmail = vEmail; // Set locally so the UI works immediately
-                    showApp();
-
+    currentUser = data.user;
+    virtualEmail = vEmail;
+    showApp();
+}
                 } else {
                     // Login
                     const { data, error } = await db.auth.signInWithPassword({ email: emailInput, password: password });
