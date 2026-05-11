@@ -297,8 +297,8 @@
                 </div>
 
                 <div class="input-group">
-                    <label>Email (Internal Login)</label>
-                    <input type="email" id="email" class="modern-input" placeholder="user@mmjmail.com">
+                    <label>Email (Login)</label>
+                    <input type="email" id="email" class="modern-input" placeholder="name@example.com">
                 </div>
                 
                 <div class="input-group">
@@ -460,7 +460,10 @@
             e.preventDefault();
             const emailInput = document.getElementById('email').value.trim();
             const password = document.getElementById('password').value;
-            const username = document.getElementById('username').value.trim().toLowerCase();
+            
+            // FIX 1: Force username to lowercase to prevent case-sensitivity issues
+            const username = document.getElementById('username').value.trim().toLowerCase(); 
+            
             const errorEl = document.getElementById('auth-error');
 
             try {
@@ -471,8 +474,8 @@
                     const { data, error } = await db.auth.signUp({ email: emailInput, password: password });
                     if (error) throw error;
 
-                    // 2. Create Profile (Internal Email)
-                    const vEmail = `${username}@mmjmail.com`;
+                    // 2. Create Profile (Internal Email) - Auto Registered
+                    const vEmail = `${username}@mmjmail.com`; // Guaranteed lowercase
                     const { error: profErr } = await db.from('profiles').insert({ id: data.user.id, virtual_email: vEmail });
                     if (profErr) throw profErr;
 
@@ -630,7 +633,8 @@
         }
 
         async function sendEmail() {
-            const to = document.getElementById('compose-to').value.trim().toLowerCase();
+            // FIX 2: Lowercase the 'To' field to ensure it matches the lowercase registration
+            let to = document.getElementById('compose-to').value.trim().toLowerCase();
             const subject = document.getElementById('compose-subject').value.trim();
             const body = document.getElementById('compose-body').value.trim();
             const errEl = document.getElementById('compose-error');
@@ -649,10 +653,11 @@
 
             try {
                 // Check if user exists
-                const { data } = await db.from('profiles').select('id').eq('virtual_email', finalTo).single();
-                if (!data) throw new Error("User not found in system");
+                const { data, error } = await db.from('profiles').select('id').eq('virtual_email', finalTo).single();
+                
+                if (error || !data) throw new Error("User not found in system.");
 
-                const { error } = await db.from('messages').insert({
+                const { error: insertError } = await db.from('messages').insert({
                     sender_id: currentUser.id,
                     sender_email: virtualEmail,
                     receiver_email: finalTo,
@@ -660,7 +665,7 @@
                     body
                 });
 
-                if (error) throw error;
+                if (insertError) throw insertError;
                 closeCompose();
                 if (activeTab === 'sent') fetchEmails();
 
