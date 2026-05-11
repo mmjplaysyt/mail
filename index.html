@@ -419,7 +419,6 @@
             const { data: { session } } = await db.auth.getSession();
             if (session) {
                 currentUser = session.user;
-                // Wait for profile
                 const loaded = await loadProfile(); 
                 if (loaded) {
                     showApp();
@@ -438,32 +437,56 @@
             const toggleBtn = document.getElementById('toggle-btn');
             const signupFields = document.getElementById('signup-fields');
 
-           if (isSignup) {
-    if (!username) throw new Error("Username required");
-    
-    // 1. Create Auth User
-    const { data, error } = await db.auth.signUp({ email: emailInput, password: password });
-    if (error) throw error;
+            if (isSignup) {
+                title.innerText = "Create Account";
+                desc.innerText = "Register your internal email address";
+                btnText.innerText = "Sign Up";
+                toggleBtn.innerText = "Already have an account?";
+                signupFields.classList.remove('hidden');
+            } else {
+                title.innerText = "Welcome Back";
+                desc.innerText = "Enter your credentials to access your account";
+                btnText.innerText = "Sign In";
+                toggleBtn.innerText = "Create an account";
+                signupFields.classList.add('hidden');
+            }
+            document.getElementById('auth-error').style.display = 'none';
+        }
 
-    // 2. WAIT 2 Seconds (Crucial for Supabase to sync)
-    await new Promise(r => setTimeout(r, 2000));
+        document.getElementById('auth-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const emailInput = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+            const username = document.getElementById('username').value.trim().toLowerCase();
+            const errorEl = document.getElementById('auth-error');
 
-    // 3. UPDATE the existing profile (Do NOT Insert)
-    // The database trigger already created the row, we just fill in the email
-    const vEmail = `${username}@mmjmail.com`;
-    
-    const { error: profErr } = await db.from('profiles')
-        .update({ virtual_email: vEmail })
-        .eq('id', data.user.id); // Match the row that already exists
+            try {
+                if (isSignup) {
+                    // --- SIGN UP LOGIC (Fixed) ---
+                    if (!username) throw new Error("Username required");
+                    
+                    // 1. Create Auth User
+                    const { data, error } = await db.auth.signUp({ email: emailInput, password: password });
+                    if (error) throw error;
 
-    if (profErr) throw new Error("Profile Update Failed: " + profErr.message);
+                    // 2. WAIT 2 Seconds (Crucial for Trigger to run)
+                    await new Promise(r => setTimeout(r, 2000));
 
-    currentUser = data.user;
-    virtualEmail = vEmail;
-    showApp();
-}
+                    // 3. UPDATE existing profile (Do NOT Insert)
+                    const vEmail = `${username}@mmjmail.com`;
+                    
+                    const { error: profErr } = await db.from('profiles')
+                        .update({ virtual_email: vEmail })
+                        .eq('id', data.user.id); // Match row created by trigger
+
+                    if (profErr) throw new Error("Profile Update Failed: " + profErr.message);
+
+                    currentUser = data.user;
+                    virtualEmail = vEmail;
+                    showApp();
+
                 } else {
-                    // Login
+                    // --- LOGIN LOGIC ---
                     const { data, error } = await db.auth.signInWithPassword({ email: emailInput, password: password });
                     if (error) throw error;
                     
@@ -641,7 +664,7 @@
 
                 const { error: insertError } = await db.from('messages').insert({
                     sender_id: currentUser.id,
-                    sender_email: virtualEmail, // This is now guaranteed to be set
+                    sender_email: virtualEmail,
                     receiver_email: finalTo,
                     subject,
                     body
